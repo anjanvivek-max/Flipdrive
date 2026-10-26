@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0c18">
+<title>FlipDrive: EV Chaos</title>
+<link rel="stylesheet" href="css/style.css">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9612725052832197"
+     crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="app">
+  <canvas id="game" aria-label="FlipDrive game view"></canvas>
+
+  <!-- ============================== HUD ============================== -->
+  <div id="hud" class="hidden" aria-live="polite">
+    <div class="hud-tl">
+      <div id="speed"><span id="speedVal">0</span><small>MPH</small></div>
+      <div id="boostWrap" title="Boost energy (Space)"><span>BOOST</span><div id="boostBar"><i></i></div></div>
+      <div id="stateChip">COUNT</div>
+    </div>
+    <div class="hud-tc">
+      <div id="score">0</div>
+      <div id="chain"></div>
+    </div>
+    <div class="hud-tr">
+      <div class="stat">DIST <b id="dist">0</b><small>ft</small></div>
+      <div class="stat">RINGS <b id="ringCount">0/0</b></div>
+      <div class="stat dim">BEST <b id="bestScore">0</b></div>
+      <div id="suspChip" class="chip hidden" title="Press C to change"></div>
+      <button id="btnPause" class="icon-btn" aria-label="Pause">&#10074;&#10074;</button>
+    </div>
+    <div id="progress"><i></i></div>
+    <div id="rotMeter" class="hidden"><span id="rotVal">0.0</span><small>ROTATIONS</small></div>
+    <div id="notes"></div>
+    <div id="banner"></div>
+    <div id="countdown"></div>
+  </div>
+
+  <!-- ============================ Touch controls ============================ -->
+  <div id="touch" class="hidden">
+    <div class="tg left">
+      <button class="tb" data-act="brake" aria-label="Brake"><b>BRAKE</b><small>reverse</small></button>
+      <button class="tb sm" data-act="left" aria-label="Rotate nose up"><b>&#10226;</b><small>TILT UP</small></button>
+      <button class="tb sm" data-act="right" aria-label="Rotate nose down"><b>&#10227;</b><small>TILT DOWN</small></button>
+    </div>
+    <div class="tg right">
+      <button class="tb boost" data-act="boost" aria-label="Boost"><b>BOOST</b></button>
+      <button class="tb gas" data-act="throttle" aria-label="Accelerate"><b>GAS</b></button>
+    </div>
+  </div>
+
+  <!-- ============================== Title ============================== -->
+  <section id="title" class="screen active" data-screen="title">
+    <div class="title-wrap">
+      <div class="logo"><span class="l1">FLIPDRIVE</span><span class="l2">EV CHAOS</span></div>
+      <p class="tag">Launch. Flip. Land it. Cross the ocean.</p>
+      <div class="menu">
+        <button id="btnPlay" class="btn primary big">PLAY</button>
+        <div class="row">
+          <button id="btnGarage" class="btn">GARAGE</button>
+          <button id="btnLevels" class="btn">LEVELS</button>
+        </div>
+        <div class="row">
+          <button id="btnHow" class="btn ghost">HOW TO PLAY</button>
+          <button id="btnSettings" class="btn ghost">SETTINGS</button>
+        </div>
+      </div>
+      <div class="selected-line" id="selectedLine"></div>
+      <div class="hint-keys"><kbd>W</kbd><kbd>&uarr;</kbd> gas &nbsp; <kbd>S</kbd><kbd>&darr;</kbd> brake &nbsp; <kbd>A</kbd><kbd>D</kbd> / <kbd>&larr;</kbd><kbd>&rarr;</kbd> rotate &nbsp; <kbd>Space</kbd> boost &nbsp; <kbd>R</kbd> restart &nbsp; <kbd>Esc</kbd> pause</div>
+      <div class="rotate-hint">Tip: landscape works best on phones.</div>
+    </div>
+  </section>
+
+  <!-- ============================== Garage ============================== -->
+  <section id="garage" class="screen" data-screen="garage">
+    <div class="panel wide">
+      <header><h2>GARAGE</h2><span class="hdr-btns"><button class="btn primary" id="gPlay">PLAY &#9654;</button><button class="btn ghost back" data-back>&larr; BACK</button></span></header>
+      <div class="cards" id="garageCards"></div>
+    </div>
+  </section>
+
+  <!-- ============================== Levels ============================== -->
+  <section id="levels" class="screen" data-screen="levels">
+    <div class="panel wide">
+      <header><h2>SELECT LEVEL</h2><button class="btn ghost back" data-back>&larr; BACK</button></header>
+      <div class="vehicle-line" id="levelVehicleLine"></div>
+      <div class="cards level-cards" id="levelCards"></div>
+    </div>
+  </section>
+
+  <!-- ============================== Settings ============================== -->
+  <section id="settings" class="screen" data-screen="settings">
+    <div class="panel">
+      <header><h2>SETTINGS</h2><button class="btn ghost back" data-back>&larr; BACK</button></header>
+      <div class="form">
+        <label class="rw"><span>Master volume</span><input type="range" id="setMaster" min="0" max="100"></label>
+        <label class="rw"><span>Effects volume</span><input type="range" id="setSfx" min="0" max="100"></label>
+        <label class="rw"><span>Music volume</span><input type="range" id="setMusic" min="0" max="100"></label>
+        <label class="rw chk"><span>Mute all</span><input type="checkbox" id="setMute"></label>
+        <label class="rw chk"><span>Background music</span><input type="checkbox" id="setMusicOn"></label>
+        <label class="rw chk"><span>Cinematic slow-motion &amp; letterbox</span><input type="checkbox" id="setCinematic"></label>
+        <label class="rw"><span>Camera shake</span><input type="range" id="setShake" min="0" max="100"></label>
+        <label class="rw"><span>Graphics quality</span>
+          <select id="setQuality"><option value="auto">Auto</option><option value="high">High</option><option value="low">Low (faster)</option></select></label>
+        <label class="rw"><span>Touch controls</span>
+          <select id="setTouch"><option value="auto">Auto</option><option value="on">Always on</option><option value="off">Off</option></select></label>
+        <label class="rw chk"><span>Show game-state chip</span><input type="checkbox" id="setState"></label>
+        <button class="btn danger" id="btnReset">RESET SAVED DATA</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== Pause ============================== -->
+  <section id="pause" class="screen overlay" data-screen="pause">
+    <div class="panel narrow">
+      <h2>PAUSED</h2>
+      <div class="stack">
+        <button class="btn primary" id="pResume">RESUME</button>
+        <button class="btn" id="pRestart">RESTART LEVEL <kbd>R</kbd></button>
+        <button class="btn" id="pGarage">GARAGE</button>
+        <button class="btn" id="pLevels">LEVELS</button>
+        <button class="btn" id="pSettings">SETTINGS</button>
+        <button class="btn ghost" id="pQuit">MAIN MENU</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== Crash ============================== -->
+  <section id="crash" class="screen overlay" data-screen="crash">
+    <div class="panel narrow crash">
+      <div class="kicker">WRECKED</div>
+      <h2 id="crashReason">CRASH</h2>
+      <div class="crash-stats"><span>SCORE <b id="crashScore">0</b></span><span>RINGS <b id="crashRings">0</b></span></div>
+      <div class="stack">
+        <button class="btn primary" id="cRetry">RETRY <small id="cRetryNote">from checkpoint</small> <kbd>Enter</kbd></button>
+        <button class="btn" id="cRestart">RESTART LEVEL <kbd>R</kbd></button>
+        <button class="btn" id="cGarage">GARAGE</button>
+        <button class="btn ghost" id="cQuit">MAIN MENU</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== Results ============================== -->
+  <section id="results" class="screen overlay" data-screen="results">
+    <div class="panel results">
+      <div class="kicker" id="resKicker">LEVEL COMPLETE</div>
+      <h2 id="resTitle">SUNSET BAY</h2>
+      <div class="big-score"><span id="resScore">0</span><em id="resNew" class="hidden">NEW BEST</em></div>
+      <table class="breakdown" id="resTable"></table>
+      <div class="res-grid" id="resGrid"></div>
+      <div class="row">
+        <button class="btn primary" id="rNext">NEXT LEVEL <kbd>Enter</kbd></button>
+        <button class="btn" id="rRetry">RETRY <kbd>R</kbd></button>
+      </div>
+      <div class="row">
+        <button class="btn ghost" id="rGarage">GARAGE</button>
+        <button class="btn ghost" id="rLevels">LEVELS</button>
+        <button class="btn ghost" id="rQuit">MENU</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== Tutorial ============================== -->
+  <section id="tutorial" class="screen overlay" data-screen="tutorial">
+    <div class="panel tut">
+      <div class="kicker">HOW TO PLAY</div>
+      <div id="tutBody"></div>
+      <div class="dots" id="tutDots"></div>
+      <div class="row">
+        <button class="btn ghost" id="tutSkip">SKIP</button>
+        <button class="btn primary" id="tutNext">NEXT</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast" class="toast"></div>
+  <noscript><p style="position:fixed;inset:0;display:grid;place-items:center;color:#fff">FlipDrive needs JavaScript.</p></noscript>
+</div>
+
+<script src="js/util.js"></script>
+<script src="js/physics.js"></script>
+<script src="js/vehicles.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/run.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/bot.js"></script>
+<script src="js/render.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
